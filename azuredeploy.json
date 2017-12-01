@@ -1,0 +1,116 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "adlAnalyticsName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Data Lake Analytics account to create."
+      }
+    },
+    "adlStoreName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Data Lake Store account to create."
+      }
+    },
+    "adlasqlAdminLogin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adlasqlAdminLoginPassword": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+   
+    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'standardsa')]",
+    "datalakedbserverName": "[concat('datalakedbserver', uniqueString(resourceGroup().id))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('adlStoreName')]",
+      "type": "Microsoft.DataLakeStore/accounts",
+      "location": "East US 2",
+      "apiVersion": "2016-11-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "adls"
+      }
+    },
+    {
+      "name": "[parameters('adlAnalyticsName')]",
+      "type": "Microsoft.DataLakeAnalytics/accounts",
+      "location": "East US 2",
+      "apiVersion": "2016-11-01",
+      "dependsOn": [
+        "[concat('Microsoft.DataLakeStore/accounts/', parameters('adlStoreName'))]"
+      ],
+      "tags": {
+        "displayName": "adla"
+      },
+      "properties": {
+        "defaultDataLakeStoreAccount": "[parameters('adlStoreName')]",
+        "dataLakeStoreAccounts": [
+          {
+            "name": "[parameters('adlStoreName')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('storageAccountName')]",
+      "apiVersion": "2016-01-01",
+      "location": "East US 2",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "tags": {
+        "displayName": "datalakestorage"
+      },
+      "kind": "Storage",
+      "properties": {
+      }
+    },
+    {
+      "name": "[variables('datalakedbserverName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "East US",
+      "apiVersion": "2014-04-01-preview",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "datalakedbserver"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('adlasqlAdminLogin')]",
+        "administratorLoginPassword": "[parameters('adlasqlAdminLoginPassword')]"
+      },
+      "resources": [
+        {
+          "name": "AllowAllWindowsAzureIps",
+          "type": "firewallrules",
+          "location": "East US",
+          "apiVersion": "2014-04-01-preview",
+          "dependsOn": [
+            "[resourceId('Microsoft.Sql/servers', variables('datalakedbserverName'))]"
+          ],
+          "properties": {
+            "startIpAddress": "25.66.0.0",
+            "endIpAddress": "25.66.255.255"
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "adlAnalyticsAccount": {
+      "type": "object",
+      "value": "[reference(resourceId('Microsoft.DataLakeAnalytics/accounts',parameters('adlAnalyticsName')))]"
+    },
+    "adlStoreAccount": {
+      "type": "object",
+      "value": "[reference(resourceId('Microsoft.DataLakeStore/accounts',parameters('adlStoreName')))]"
+    }
+  }
+}
