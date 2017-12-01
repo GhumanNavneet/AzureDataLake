@@ -7,6 +7,12 @@
     },
     "adlStoreName": {
       "value": "GEN-UNIQUE"
+    },
+    "adlasqlAdminLogin": {
+     "value": "GEN-UNIQUE"
+    },
+    "adlasqlAdminLoginPassword": {
+      "value": "GEN-PASSWORD"
     }
   }
 }
